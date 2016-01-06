@@ -1,3 +1,12 @@
+Upon seeing it, my father-in-law was immediately intrigued by our Fibonacci
+Clock by Philippe Chretien (http://geekoclock.com/contact/). He asked me to 
+"invent" a Fibonacci Watch for him. I dismissed the idea immediately, but
+later came across TinyCircuits watch kit, and thought "Ah ha!"
+
+So the watch, and I, owe a debt of gratitude to Philippe. The display was
+obviously designed to mimic his, although the code for doing so is my own,
+and I only looked at his after I wrote mine.
+
 This watch will run on the TinyCircuits TinyDuino platform with the TinyScreen
 and TinyShield RTC. The intent is to have it sleep almost all the time, awakening
 only when a button is pressed. Buttons are as follows:

@@ -23,11 +23,17 @@
 #define BOTHCOLOR       BLUE
 #define OFFCOLOR        WHITE
 
-// Buttons -- these names as
+// Buttons
 #define BTN_BL          0b0001
 #define BTN_TL          0b0010
 #define BTN_TR          0b0100
 #define BTN_BR          0b1000
+
+// Flipped
+#define BTN_F_BL        0b0001
+#define BTN_F_TL        0b0010
+#define BTN_F_TR        0b0100
+#define BTN_F_BR        0b1000
 
 // Screen Dimensions
 #define WIDTH           96

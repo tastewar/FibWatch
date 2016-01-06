@@ -66,5 +66,6 @@ Hardware:
 =========
 Orientation
 Brightness
+DisplayTimeout
 Battery
 Color Scheme

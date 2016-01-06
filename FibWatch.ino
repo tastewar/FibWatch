@@ -182,7 +182,7 @@ time_t compileTime(void)
     tm.Minute = atoi(compTime + 3);
     tm.Second = atoi(compTime + 6);
     t = makeTime(tm);
-    return t + FUDGE - (5*3600);        //add fudge factor to allow for compile time and TZO
+    return t + FUDGE /*- (5*3600)*/;        //add fudge factor to allow for compile time and TZO
 }
 
 void DisplayTime (time_t loc)

@@ -4,6 +4,9 @@
 #include <Time.h>
 #include <Timezone.h>
 
+//#define DEBUG
+
+
 // Colors
 #define	BLACK           0x00
 #define	BLUE            0xE0
@@ -20,17 +23,11 @@
 #define BOTHCOLOR       BLUE
 #define OFFCOLOR        WHITE
 
-// Buttons
-#define BTN_TR          0b0001
-#define BTN_BR          0b0010
-#define BTN_BL          0b0100
-#define BTN_TL          0b1000
-
-// Flipped
-#define BTN_F_BL        0b0001
-#define BTN_F_TL        0b0010
-#define BTN_F_TR        0b0100
-#define BTN_F_BR        0b1000
+// Buttons -- these names as
+#define BTN_BL          0b0001
+#define BTN_TL          0b0010
+#define BTN_TR          0b0100
+#define BTN_BR          0b1000
 
 // Screen Dimensions
 #define WIDTH           96
@@ -55,33 +52,16 @@
 #define LeftMargin (WIDTH%(PixPerFib*FIBSW)>>1)
 
 // Box Locations
-#ifndef REVERSE
-
-#define BOX1ATOP (TopMargin+PixPerFib)
+#define BOX1ATOP (TopMargin+(1*PixPerFib))
 #define BOX1ALEFT (LeftMargin+(2*PixPerFib))
-#define BOX1BTOP TopMargin
+#define BOX1BTOP (TopMargin+(0*PixPerFib))
 #define BOX1BLEFT (LeftMargin+(2*PixPerFib))
-#define BOX2TOP TopMargin
-#define BOX2LEFT LeftMargin
+#define BOX2TOP (TopMargin+(0*PixPerFib))
+#define BOX2LEFT (LeftMargin+(0*PixPerFib))
 #define BOX3TOP (TopMargin+(2*PixPerFib))
-#define BOX3LEFT LeftMargin
-#define BOX5TOP TopMargin
+#define BOX3LEFT (LeftMargin+(0*PixPerFib))
+#define BOX5TOP (TopMargin+(0*PixPerFib))
 #define BOX5LEFT (LeftMargin+(3*PixPerFib))
-
-#else
-
-#define BOX1ATOP (TopMargin+(3*PixPerFib))
-#define BOX1ALEFT (LeftMargin+(5*PixPerFib))
-#define BOX1BTOP (TopMargin+(4*PixPerFib))
-#define BOX1BLEFT (LeftMargin+(5*PixPerFib))
-#define BOX2TOP (TopMargin+(3*PixPerFib))
-#define BOX2LEFT (LeftMargin+(6*PixPerFib))
-#define BOX3TOP TopMargin
-#define BOX3LEFT (LeftMargin+(5*PixPerFib))
-#define BOX5TOP TopMargin
-#define BOX5LEFT LeftMargin
-
-#endif
 
 #define BOX1SIZE PixPerFib
 #define BOX2SIZE (2*PixPerFib)
@@ -95,7 +75,8 @@
 
 #define numcolors 4
 #define numboxes 5
-#define DISPLAYTIME 10000
+#define DISPLAY_TIME 12500
+#define DEBOUNCE_TIME 50
 
 uint8_t clockcolors[]={OFFCOLOR,HOURCOLOR,MINUTECOLOR,BOTHCOLOR};
 uint8_t bits[]={BOX1ABIT,BOX1BBIT,BOX2BIT,BOX3BIT,BOX5BIT};
@@ -105,7 +86,7 @@ uint8_t tops[numboxes]={BOX1ATOP,BOX1BTOP,BOX2TOP,BOX3TOP,BOX5TOP};
 uint8_t sizes[numboxes]={BOX1SIZE,BOX1SIZE,BOX2SIZE,BOX3SIZE,BOX5SIZE};
 
 // ways to display numbers
-// arrays of bitmasks where the bits represent the state of boxes 5,3,2,1B,1A
+// arrays of bitmaps where the bits represent the state of boxes 5,3,2,1B,1A
 uint8_t   zeros[]={0b00000};
 uint8_t    ones[]={0b00010,0b00001};
 uint8_t    twos[]={0b00100,0b00011};
@@ -205,49 +186,101 @@ void DisplayTime (time_t loc)
   hrsr=ChooseRepresentation(hour(loc)%12);
   minsr=ChooseRepresentation(minute(loc)/5);
 
-#ifdef DEBUG
-  uint8_t prhrs,prmins;
-
-  prhrs=(((hrsr&BOX5BIT)>>4)*5)+(((hrsr&BOX3BIT)>>3)*3)+(((hrsr&BOX2BIT)>>2)*2)+((hrsr&BOX1BBIT)>>1)+(hrsr&BOX1ABIT);
-  prmins=(((minsr&BOX5BIT)>>4)*5)+(((minsr&BOX3BIT)>>3)*3)+(((minsr&BOX2BIT)>>2)*2)+((minsr&BOX1BBIT)>>1)+(minsr&BOX1ABIT);
-  Serial.print("Time: ");
-  Serial.print(hour(loc));
-  Serial.print(':');
-  Serial.println(minute(loc));
-  Serial.print("Rep: ");
-  Serial.print(hrsr,BIN);
-  Serial.print(':');
-  Serial.println(minsr,BIN);
-  Serial.print("Recalculated Clock Hands: ");
-  Serial.print(prhrs);
-  Serial.print(':');
-  Serial.println(prmins);
-#endif
   for (b=0;b<numboxes;b++)
   {
   	uint8_t col,colnum,XXX,YYY;
   	XXX=(hrsr&bits[b])>>shifts[b];
   	YYY=((minsr&bits[b])>>shifts[b])<<1;
   	colnum=XXX+YYY;
-#ifdef DEBUG
-    Serial.print("Box Color for box ");
-  	Serial.print(b);
-  	Serial.print(':');
-  	Serial.print(XXX);
-  	Serial.print(':');
-  	Serial.println(YYY);
-  	Serial.println(colnum);
-#endif
     col=clockcolors[colnum];
   	FillFibBox(b,col);
   }
 }
 
+void DisplayTextDateTime(time_t t, TimeChangeRule *tcr)
+{
+  	display.setCursor(7,15);
+    display.print(dayShortStr(weekday(t)));
+    display.print(' ');
+    sPrintI00(day(t));
+    display.print(' ');
+    display.print(monthShortStr(month(t)));
+    display.print(' ');
+    display.print(year(t));
+  	display.setCursor(27,30);
+    sPrintI00(hourFormat12(t));
+    sPrintDigits(minute(t));
+    display.print(' ');
+    display.print(isAM(t)?"AM":"PM");
+  	display.setCursor(37,45);
+  	display.print(tcr->abbrev);
+}
+
+//Print an integer in "00" format (with leading zero).
+//Input value assumed to be between 0 and 99.
+void sPrintI00(int val)
+{
+    if (val < 10) Serial.print('0');
+    display.print(val, DEC);
+    return;
+}
+
+//Print an integer in ":00" format (with leading zero).
+//Input value assumed to be between 0 and 99.
+void sPrintDigits(int val)
+{
+    display.print(':');
+    if(val < 10) display.print('0');
+    display.print(val, DEC);
+}
+
+uint8_t CheckButtons()
+{
+  // return all buttons pressed after all buttons released
+  static uint8_t RememberedButtons;
+  static bool ButtonInProgress;
+  static unsigned long RememberedTime;
+  uint8_t Buttons;
+  Buttons = display.getButtons();
+  Buttons &= 0xF;
+  if ( !Buttons && !RememberedTime )
+  {
+  	RememberedTime = millis();
+  }
+  else if ( !Buttons && ButtonInProgress && millis()-RememberedTime > DEBOUNCE_TIME )
+  {
+  	unsigned long orb;
+  	ButtonInProgress = false;
+  	orb = RememberedButtons;
+  	RememberedButtons = 0;
+  	return orb;
+  }
+  else if ( Buttons )
+  {
+  	RememberedButtons |= Buttons;
+  	RememberedTime = 0;
+  	ButtonInProgress = true;
+  }
+  return 0;
+}
+
 // Globals
+
+typedef enum _DisplayMode
+{
+	DMOff,
+	DMFibTime,
+	DMTextTime,
+	DMMenu,
+} DisplayMode;
+
 time_t utc;
-bool DisplayOn;
+bool Flipped;
 bool BtnPressNoted;
 unsigned long TimeDisplayOn;
+uint8_t BtnDisplay;
+uint8_t BtnFlip;
+DisplayMode DM;
 
 void setup()
 {
@@ -257,30 +290,89 @@ void setup()
   setTime(usET.toUTC(compileTime()));
   Wire.begin();
   display.begin();
+  display.setFont(liberationSans_10ptFontInfo);
+#ifdef REVERSE
+  display.setFlip(1);
+  Flipped = true;
+  BtnDisplay = BTN_BR;
+  BtnFlip = BTN_BL;
+#else
+  BtnDisplay = BTN_TL;
+  BtnFlip = BTN_TR;
+#endif
   display.clearWindow(0,0,WIDTH,HEIGHT);
+  DM=DMOff;
 }
 
 void loop()
 {
-  time_t loc;
-#ifdef DEBUG
-  Serial.println();
-#endif
-  if ( display.getButtons() & BTN_TL )
+  static time_t loc;
+  static TimeChangeRule *tcr;
+  uint8_t btn;
+
+  btn=CheckButtons();
+  if ( (btn & BtnDisplay) && (btn & BtnFlip) )
+  {
+  	// 2-button "chord" -- cheat -- display text date/time
+    display.clearWindow(0,0,WIDTH,HEIGHT);
+  	TimeDisplayOn = millis();
+    utc = now();
+    loc = usET.toLocal(utc,&tcr);
+  	DisplayTextDateTime(loc,tcr);
+  	if ( DM == DMOff )
+  	{
+      display.on();
+  	}
+    DM=DMTextTime;
+  }
+  else if ( btn & BtnDisplay )
   {
   	TimeDisplayOn = millis();
-  	if ( !DisplayOn )
+    utc = now();
+    loc = usET.toLocal(utc);
+    display.clearWindow(0,0,WIDTH,HEIGHT);
+    DisplayTime(loc);
+  	if ( DM == DMOff )
   	{
-      utc = now();
-      loc = usET.toLocal(utc);
-      DisplayTime(loc);
       display.on();
-      DisplayOn=true;
+  	}
+    DM=DMFibTime;
+  }
+  else if ( btn & BtnFlip )
+  {
+#ifdef DEBUG
+  	Serial.println(DM);
+#endif
+  	if ( DM != DMOff ) display.off();
+  	if ( Flipped )
+  	{
+      display.setFlip(0);
+      Flipped=false;
+      BtnDisplay = BTN_TL;
+      BtnFlip = BTN_TR;
+  	}
+  	else
+  	{
+      display.setFlip(1);
+      Flipped=true;
+      BtnDisplay = BTN_BR;
+      BtnFlip = BTN_BL;
+  	}
+  	if ( DM != DMOff )
+  	{
+#ifdef DEBUG
+  	  Serial.println(DM);
+#endif
+      display.clearWindow(0,0,WIDTH,HEIGHT);
+  	  if ( DM == DMFibTime ) DisplayTime(loc);
+  	  else if ( DM == DMTextTime ) DisplayTextDateTime(loc,tcr);
+  	  display.on();
+  	  TimeDisplayOn = millis();
   	}
   }
-  else if ( millis() - TimeDisplayOn > DISPLAYTIME )
+  else if ( millis() - TimeDisplayOn > DISPLAY_TIME )
   {
     display.off();
-    DisplayOn=false;
+    DM=DMOff;
   }
 }

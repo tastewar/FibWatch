@@ -58,3 +58,4 @@ Hardware:
 Orientation
 Brightness
 Battery
+Color Scheme

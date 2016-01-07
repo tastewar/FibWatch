@@ -3,88 +3,70 @@
 #include <Wire.h>
 #include <Time.h>
 #include <Timezone.h>
+#include "FibWatch.h"
 
 //#define DEBUG
 
+typedef enum _DisplayMode
+{
+  DMOff,
+  DMFibTime,
+  DMTextTime,
+  DMMenu,
+} DisplayMode;
 
-// Colors
-#define	BLACK           0x00
-#define	BLUE            0xE0
-#define	RED             0x03
-#define	GREEN           0x1C
-#define	DGREEN          0x0C
-#define YELLOW          0x1F
-#define WHITE           0xFF
-#define ALPHA           0xFE
-#define	BROWN           0x32
+typedef struct _ScreenColor
+{
+  uint8_t Red;
+  uint8_t Green;
+  uint8_t Blue;
+} ScreenColor;
 
-#define HOURCOLOR       RED
-#define MINUTECOLOR     GREEN
-#define BOTHCOLOR       BLUE
-#define OFFCOLOR        WHITE
+typedef struct _Palette
+{
+  ScreenColor Colors[4]; // off, hour, minute, both
+} Palette;
 
-// Buttons
-#define BTN_BL          0b0001
-#define BTN_TL          0b0010
-#define BTN_TR          0b0100
-#define BTN_BR          0b1000
+Palette clockcolors[TOTAL_PALETTES]=
+{ // These are copied directly from the Fibonacci Clock code
+  // -- off  --  -- hours --   --minutes--   --  both  --
+  // R   G   B     R   G   B     R   G   B     R   G   B
+  {255,255,255},{255, 10, 10},{ 10,255, 10},{ 10, 10,255}, //RGB
+  {255,255,255},{255, 10, 10},{248,222,  0},{ 10, 10,255}, //Mondrian
+  {255,255,255},{ 80, 40,  0},{ 20,200, 20},{255,100, 10}, //Basbrun
+  {255,255,255},{245,100,201},{114,247, 54},{113,235,219}, //80's
+  {255,255,255},{255,123,123},{143,255,112},{120,120,255}, //Pastel
+  {255,255,255},{212, 49, 45},{145,210, 49},{141, 95,224}, //Modern
+  {255,255,255},{209, 62,200},{ 69,232,224},{ 80, 70,202}, //Cold
+  {255,255,255},{237, 20, 20},{246,243, 54},{255,126, 21}, //Warm
+  {255,255,255},{ 70, 35,  0},{ 70,122, 10},{200,182,  0}, //Earth
+  {255,255,255},{211, 34, 34},{ 80,151, 78},{ 16, 24,149}, //Dark
+ };
 
-// Flipped
-#define BTN_F_BL        0b0001
-#define BTN_F_TL        0b0010
-#define BTN_F_TR        0b0100
-#define BTN_F_BR        0b1000
+typedef enum _PalNums
+ {
+  PAL_RGB,
+  PAL_MONDRIAN,
+  PAL_BASBRUN,
+  PAL_80S,
+  PAL_PASTEL,
+  PAL_MODERN,
+  PAL_COLD,
+  PAL_WARM,
+  PAL_EARTH,
+  PAL_DARK,
+ } PalNum;
 
-// Screen Dimensions
-#define WIDTH           96
-#define HEIGHT          64
-#define FIBSH			5
-#define FIBSW			8
-#define NBYHEIGHT       (HEIGHT/FIBSH)
-#define NBYWIDTH        (WIDTH/FIBSW)
+// Globals
 
-// Comment the below define if screen is right side up
-#define REVERSE
-// Comment the below define to remove borders
-#define BORDERS
-
-#if NBYHEIGHT<NBYWIDTH
-#define PixPerFib      NBYHEIGHT
-#else
-#define PixPerFib      NBYWIDTH
-#endif
-
-#define TopMargin (HEIGHT%(PixPerFib*FIBSH)>>1)
-#define LeftMargin (WIDTH%(PixPerFib*FIBSW)>>1)
-
-// Box Locations
-#define BOX1ATOP (TopMargin+(1*PixPerFib))
-#define BOX1ALEFT (LeftMargin+(2*PixPerFib))
-#define BOX1BTOP (TopMargin+(0*PixPerFib))
-#define BOX1BLEFT (LeftMargin+(2*PixPerFib))
-#define BOX2TOP (TopMargin+(0*PixPerFib))
-#define BOX2LEFT (LeftMargin+(0*PixPerFib))
-#define BOX3TOP (TopMargin+(2*PixPerFib))
-#define BOX3LEFT (LeftMargin+(0*PixPerFib))
-#define BOX5TOP (TopMargin+(0*PixPerFib))
-#define BOX5LEFT (LeftMargin+(3*PixPerFib))
-
-#define BOX1SIZE PixPerFib
-#define BOX2SIZE (2*PixPerFib)
-#define BOX3SIZE (3*PixPerFib)
-#define BOX5SIZE (5*PixPerFib)
-#define BOX1ABIT 0b00001
-#define BOX1BBIT 0b00010
-#define BOX2BIT  0b00100
-#define BOX3BIT  0b01000
-#define BOX5BIT  0b10000
-
-#define numcolors 4
-#define numboxes 5
-#define DISPLAY_TIME 12500
-#define DEBOUNCE_TIME 50
-
-uint8_t clockcolors[]={OFFCOLOR,HOURCOLOR,MINUTECOLOR,BOTHCOLOR};
+time_t utc;
+bool Flipped;
+bool BtnPressNoted;
+unsigned long TimeDisplayOn;
+uint8_t BtnDisplay;
+uint8_t BtnFlip;
+DisplayMode DM;
+PalNum Pal;
 uint8_t bits[]={BOX1ABIT,BOX1BBIT,BOX2BIT,BOX3BIT,BOX5BIT};
 uint8_t shifts[]={0,1,2,3,4};
 uint8_t lefts[numboxes]={BOX1ALEFT,BOX1BLEFT,BOX2LEFT,BOX3LEFT,BOX5LEFT};
@@ -148,14 +130,14 @@ uint8_t ChooseRepresentation ( uint8_t number )
 
 TinyScreen display = TinyScreen(0);
 
-void FillFibBox(uint8_t box, uint8_t color)
+void FillFibBox(uint8_t box, ScreenColor *color)
 {
   if (box<numboxes)
   {
 #ifdef BORDERS
-   	display.drawRect(lefts[box]+1,tops[box]+1,sizes[box]-2,sizes[box]-2,true,color);
+   	display.drawRect(lefts[box]+1,tops[box]+1,sizes[box]-2,sizes[box]-2,true,color->Red,color->Green,color->Blue);
 #else
-   	display.drawRect(lefts[box],tops[box],sizes[box],sizes[box],true,color);
+   	display.drawRect(lefts[box],tops[box],sizes[box],sizes[box],true,color->Red,color->Green,color->Blue);
 #endif
   }
 }
@@ -194,12 +176,13 @@ void DisplayTime (time_t loc)
 
   for (b=0;b<numboxes;b++)
   {
-  	uint8_t col,colnum,XXX,YYY;
+  	uint8_t colnum,XXX,YYY;
+    ScreenColor col;
   	XXX=(hrsr&bits[b])>>shifts[b];
   	YYY=((minsr&bits[b])>>shifts[b])<<1;
   	colnum=XXX+YYY;
-    col=clockcolors[colnum];
-  	FillFibBox(b,col);
+    col=clockcolors[Pal][colnum];
+  	FillFibBox(b,&col);
   }
 }
 
@@ -269,24 +252,6 @@ uint8_t CheckButtons()
   }
   return 0;
 }
-
-// Globals
-
-typedef enum _DisplayMode
-{
-	DMOff,
-	DMFibTime,
-	DMTextTime,
-	DMMenu,
-} DisplayMode;
-
-time_t utc;
-bool Flipped;
-bool BtnPressNoted;
-unsigned long TimeDisplayOn;
-uint8_t BtnDisplay;
-uint8_t BtnFlip;
-DisplayMode DM;
 
 void setup()
 {

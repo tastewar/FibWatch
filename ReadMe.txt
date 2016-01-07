@@ -69,3 +69,13 @@ Brightness
 DisplayTimeout
 Battery
 Color Scheme
+
+To-Do List:
+==========
+==========
+
+1. RTC support
+2. Sleep support
+3. Menu!
+4. Hardware Parameter Storage & Retrieval
+5. Colorsets

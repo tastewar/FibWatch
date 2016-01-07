@@ -24,13 +24,11 @@ Palette clockcolors[TOTAL_PALETTES]=
  };
 
 // Globals
-
 time_t utc;
-bool Flipped;
-bool BtnPressNoted;
+bool Flipped, BtnPressNoted;
 unsigned long TimeDisplayOn;
-uint8_t BtnDisplay;
-uint8_t BtnFlip;
+uint8_t BtnDisplay, BtnFlip, BtnBrighter, BtnDimmer;
+uint8_t Bright;
 DisplayMode DM;
 PalNum Pal;
 uint8_t bits[]={BOX1ABIT,BOX1BBIT,BOX2BIT,BOX3BIT,BOX5BIT};
@@ -234,15 +232,21 @@ void setup()
 #ifdef REVERSE
   display.setFlip(1);
   Flipped = true;
-  BtnDisplay = BTN_BR;
-  BtnFlip = BTN_BL;
+  BtnDisplay = BTN_F_TL;
+  BtnFlip = BTN_F_TR;
+  BtnBrighter = BTN_F_BR;
+  BtnDimmer = BTN_F_BL;
 #else
   BtnDisplay = BTN_TL;
   BtnFlip = BTN_TR;
+  BtnBrighter = BTN_BR;
+  BtnDimmer = BTN_BL;
 #endif
   display.clearWindow(0,0,WIDTH,HEIGHT);
   DM=DMOff;
   Pal=PAL_RGB;
+  Bright=7;
+  display.setBrightness(Bright);
 }
 
 void loop()
@@ -291,19 +295,20 @@ void loop()
       Flipped=false;
       BtnDisplay = BTN_TL;
       BtnFlip = BTN_TR;
+      BtnBrighter = BTN_BR;
+      BtnDimmer = BTN_BL;
   	}
   	else
   	{
       display.setFlip(1);
       Flipped=true;
-      BtnDisplay = BTN_BR;
-      BtnFlip = BTN_BL;
+      BtnDisplay = BTN_F_TL;
+      BtnFlip = BTN_F_TR;
+      BtnBrighter = BTN_F_BR;
+      BtnDimmer = BTN_F_BL;
   	}
   	if ( DM != DMOff )
   	{
-#ifdef DEBUG
-  	  Serial.println(DM);
-#endif
       display.clearWindow(0,0,WIDTH,HEIGHT);
   	  if ( DM == DMFibTime ) DisplayTime(loc);
   	  else if ( DM == DMTextTime ) DisplayTextDateTime(loc,tcr);
@@ -311,7 +316,17 @@ void loop()
   	  TimeDisplayOn = millis();
   	}
   }
-  else if ( millis() - TimeDisplayOn > DISPLAY_TIME )
+  else if ( btn & BtnBrighter )
+  {
+    if ( Bright < 15 ) Bright++;
+    display.setBrightness(Bright);
+  }
+  else if ( btn & BtnDimmer )
+  {
+    if ( Bright > 0 ) Bright--;
+    display.setBrightness(Bright);
+  }
+  if ( millis() - TimeDisplayOn > DISPLAY_TIME )
   {
     display.off();
     DM=DMOff;

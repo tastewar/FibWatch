@@ -79,3 +79,5 @@ To-Do List:
 3. Menu!
 4. Hardware Parameter Storage & Retrieval
 5. Colorsets
+6. Move big tables to PROGMEM
+7. Don't forget to seed random when we can use clock

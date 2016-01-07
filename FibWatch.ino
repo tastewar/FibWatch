@@ -5,10 +5,27 @@
 #include <Timezone.h>
 #include "FibWatch.h"
 
-//#define DEBUG
+#ifdef USE_PMEM
+#define PMEM PMEM
+#else
+#define PMEM
+#endif
 
-Palette clockcolors[TOTAL_PALETTES]=
-{ // These are copied directly from the Fibonacci Clock code
+// ******************************   D  A  T  A   *****************************
+
+// Globals
+time_t        utc;
+bool          Flipped, BtnPressNoted;
+unsigned long TimeDisplayOn;
+uint8_t       BtnDisplay, BtnFlip, BtnBrighter, BtnDimmer;
+uint8_t       Bright;
+DisplayMode   DM;
+PalNum        Pal;
+TinyScreen    display = TinyScreen(0);
+
+// Tables
+const Palette clockcolors[TOTAL_PALETTES] PMEM =
+{ // These are copied from the Fibonacci Clock code    120 bytes
   // -- off  --   -- hours --   --minutes--   --  both  --
   // R   G   B     R   G   B     R   G   B     R   G   B
   {{{255,255,255},{255, 10, 10},{ 10,255, 10},{ 10, 10,255}}}, //RGB
@@ -23,61 +40,58 @@ Palette clockcolors[TOTAL_PALETTES]=
   {{{255,255,255},{211, 34, 34},{ 80,151, 78},{ 16, 24,149}}}, //Dark
  };
 
-// Globals
-time_t utc;
-bool Flipped, BtnPressNoted;
-unsigned long TimeDisplayOn;
-uint8_t BtnDisplay, BtnFlip, BtnBrighter, BtnDimmer;
-uint8_t Bright;
-DisplayMode DM;
-PalNum Pal;
-uint8_t bits[]={BOX1ABIT,BOX1BBIT,BOX2BIT,BOX3BIT,BOX5BIT};
-uint8_t shifts[]={0,1,2,3,4};
-uint8_t lefts[numboxes]={BOX1ALEFT,BOX1BLEFT,BOX2LEFT,BOX3LEFT,BOX5LEFT};
-uint8_t tops[numboxes]={BOX1ATOP,BOX1BTOP,BOX2TOP,BOX3TOP,BOX5TOP};
-uint8_t sizes[numboxes]={BOX1SIZE,BOX1SIZE,BOX2SIZE,BOX3SIZE,BOX5SIZE};
+// following use 25 bytes
+const uint8_t bits[]          PMEM ={BOX1ABIT,BOX1BBIT,BOX2BIT,BOX3BIT,BOX5BIT};
+const uint8_t shifts[]        PMEM ={0,1,2,3,4};
+const uint8_t lefts[numboxes] PMEM ={BOX1ALEFT,BOX1BLEFT,BOX2LEFT,BOX3LEFT,BOX5LEFT};
+const uint8_t tops[numboxes]  PMEM ={BOX1ATOP,BOX1BTOP,BOX2TOP,BOX3TOP,BOX5TOP};
+const uint8_t sizes[numboxes] PMEM ={BOX1SIZE,BOX1SIZE,BOX2SIZE,BOX3SIZE,BOX5SIZE};
 
-// ways to display numbers
+// ways to display numbers -- 32 bytes
 // arrays of bitmaps where the bits represent the state of boxes 5,3,2,1B,1A
-uint8_t   zeros[]={0b00000};
-uint8_t    ones[]={0b00010,0b00001};
-uint8_t    twos[]={0b00100,0b00011};
-uint8_t  threes[]={0b01000,0b00110,0b00101};
-uint8_t   fours[]={0b01010,0b01001,0b00111};
-uint8_t   fives[]={0b10000,0b01100,0b01011};
-uint8_t   sixes[]={0b10010,0b10001,0b01110,0b01101};
-uint8_t  sevens[]={0b10100,0b10011,0b01111};
-uint8_t  eights[]={0b11000,0b10110,0b10101};
-uint8_t   nines[]={0b11010,0b11001,0b10111};
-uint8_t    tens[]={0b11100,0b11011};
-uint8_t elevens[]={0b11110,0b11101};
-uint8_t twelves[]={0b11111};
+const uint8_t   zeros[] PMEM ={0b00000};
+const uint8_t    ones[] PMEM ={0b00010,0b00001};
+const uint8_t    twos[] PMEM ={0b00100,0b00011};
+const uint8_t  threes[] PMEM ={0b01000,0b00110,0b00101};
+const uint8_t   fours[] PMEM ={0b01010,0b01001,0b00111};
+const uint8_t   fives[] PMEM ={0b10000,0b01100,0b01011};
+const uint8_t   sixes[] PMEM ={0b10010,0b10001,0b01110,0b01101};
+const uint8_t  sevens[] PMEM ={0b10100,0b10011,0b01111};
+const uint8_t  eights[] PMEM ={0b11000,0b10110,0b10101};
+const uint8_t   nines[] PMEM ={0b11010,0b11001,0b10111};
+const uint8_t    tens[] PMEM ={0b11100,0b11011};
+const uint8_t elevens[] PMEM ={0b11110,0b11101};
+const uint8_t twelves[] PMEM ={0b11111};
 
-uint8_t *waystodraw[]={zeros,ones,twos,threes,fours,fives,sixes,sevens,eights,nines,tens,elevens,twelves};
-uint8_t numwaystodraw[]={
-	sizeof(zeros)/sizeof(uint8_t),
-	sizeof(ones)/sizeof(uint8_t),
-	sizeof(twos)/sizeof(uint8_t),
-	sizeof(threes)/sizeof(uint8_t),
-	sizeof(fours)/sizeof(uint8_t),
-	sizeof(fives)/sizeof(uint8_t),
-	sizeof(sixes)/sizeof(uint8_t),
-	sizeof(sevens)/sizeof(uint8_t),
-	sizeof(eights)/sizeof(uint8_t),
-	sizeof(nines)/sizeof(uint8_t),
-	sizeof(tens)/sizeof(uint8_t),
+const uint8_t * const waystodraw[] PMEM ={zeros,ones,twos,threes,fours,fives,sixes,sevens,eights,nines,tens,elevens,twelves}; // 13 ptrs, 26 bytes
+const uint8_t numwaystodraw[] PMEM ={
+	sizeof(zeros)  /sizeof(uint8_t),
+	sizeof(ones)   /sizeof(uint8_t),
+	sizeof(twos)   /sizeof(uint8_t),
+	sizeof(threes) /sizeof(uint8_t),
+	sizeof(fours)  /sizeof(uint8_t),
+	sizeof(fives)  /sizeof(uint8_t),
+	sizeof(sixes)  /sizeof(uint8_t),
+	sizeof(sevens) /sizeof(uint8_t),
+	sizeof(eights) /sizeof(uint8_t),
+	sizeof(nines)  /sizeof(uint8_t),
+	sizeof(tens)   /sizeof(uint8_t),
 	sizeof(elevens)/sizeof(uint8_t),
 	sizeof(twelves)/sizeof(uint8_t),
-};
+}; // 13 bytes
 
-//US Eastern Time Zone (New York, Detroit)
+// Time Zones
 TimeChangeRule usEDT = {"EDT", Second, Sun, Mar, 2, -240};  //Eastern Daylight Time = UTC - 4 hours
 TimeChangeRule usEST = {"EST", First, Sun, Nov, 2, -300};   //Eastern Standard Time = UTC - 5 hours
 Timezone usET(usEDT, usEST);
 
-uint8_t ChooseRepresentation ( uint8_t number )
+// ******************************   C  O  D  E   *****************************
+
+uint8_t ChooseFibReb ( uint8_t number )
 {
-  uint8_t possibilities, whichway, *ways;
+  uint8_t        possibilities, whichway;
+  const uint8_t *ways;
+  
   if ( number>12 ) return 0;
   possibilities=numwaystodraw[number];
   ways=waystodraw[number];
@@ -91,8 +105,6 @@ uint8_t ChooseRepresentation ( uint8_t number )
   }
   return ways[whichway];
 }
-
-TinyScreen display = TinyScreen(0);
 
 void FillFibBox(uint8_t box, ScreenColor *color)
 {
@@ -111,11 +123,11 @@ time_t compileTime(void)
 {
 #define FUDGE 25        //fudge factor to allow for compile time (seconds, YMMV)
 
-    char *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
-    char chMon[3], *m;
-    int d, y;
+    char        *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
+    char         chMon[3], *m;
+    int          d, y;
     tmElements_t tm;
-    time_t t;
+    time_t       t;
 
     strncpy(chMon, compDate, 3);
     chMon[3] = '\0';
@@ -133,10 +145,15 @@ time_t compileTime(void)
 
 void DisplayTime (time_t loc)
 {
-  uint8_t hrsr,minsr,b;
+  uint8_t h,hrsr,minsr,b;
 
-  hrsr=ChooseRepresentation(hour(loc)%12);
-  minsr=ChooseRepresentation(minute(loc)/5);
+  h=hour(loc)%12;
+  if (h==0)
+  {
+    h=12;
+  }
+  hrsr=ChooseFibReb(h);
+  minsr=ChooseFibReb(minute(loc)/5);
 
   for (b=0;b<numboxes;b++)
   {
@@ -193,10 +210,11 @@ void sPrintDigits(int val)
 uint8_t CheckButtons()
 {
   // return all buttons pressed after all buttons released
-  static uint8_t RememberedButtons;
-  static bool ButtonInProgress;
+  static uint8_t       RememberedButtons;
+  static bool          ButtonInProgress;
   static unsigned long RememberedTime;
-  uint8_t Buttons;
+  uint8_t              Buttons;
+  
   Buttons = display.getButtons();
   Buttons &= 0xF;
   if ( !Buttons && !RememberedTime )
@@ -206,6 +224,7 @@ uint8_t CheckButtons()
   else if ( !Buttons && ButtonInProgress && millis()-RememberedTime > DEBOUNCE_TIME )
   {
   	unsigned long orb;
+    
   	ButtonInProgress = false;
   	orb = RememberedButtons;
   	RememberedButtons = 0;
@@ -232,15 +251,15 @@ void setup()
 #ifdef REVERSE
   display.setFlip(1);
   Flipped = true;
-  BtnDisplay = BTN_F_TL;
-  BtnFlip = BTN_F_TR;
+  BtnDisplay =  BTN_F_TL;
+  BtnFlip =     BTN_F_TR;
   BtnBrighter = BTN_F_BR;
-  BtnDimmer = BTN_F_BL;
+  BtnDimmer =   BTN_F_BL;
 #else
-  BtnDisplay = BTN_TL;
-  BtnFlip = BTN_TR;
+  BtnDisplay =  BTN_TL;
+  BtnFlip =     BTN_TR;
   BtnBrighter = BTN_BR;
-  BtnDimmer = BTN_BL;
+  BtnDimmer =   BTN_BL;
 #endif
   display.clearWindow(0,0,WIDTH,HEIGHT);
   DM=DMOff;
@@ -251,9 +270,9 @@ void setup()
 
 void loop()
 {
-  static time_t loc;
+  static time_t          loc;
   static TimeChangeRule *tcr;
-  uint8_t btn;
+  uint8_t                btn;
 
   btn=CheckButtons();
   if ( (btn & BtnDisplay) && (btn & BtnFlip) )
@@ -285,27 +304,24 @@ void loop()
   }
   else if ( btn & BtnFlip )
   {
-#ifdef DEBUG
-  	Serial.println(DM);
-#endif
   	if ( DM != DMOff ) display.off();
   	if ( Flipped )
   	{
       display.setFlip(0);
       Flipped=false;
-      BtnDisplay = BTN_TL;
-      BtnFlip = BTN_TR;
+      BtnDisplay =  BTN_TL;
+      BtnFlip =     BTN_TR;
       BtnBrighter = BTN_BR;
-      BtnDimmer = BTN_BL;
+      BtnDimmer =   BTN_BL;
   	}
   	else
   	{
       display.setFlip(1);
       Flipped=true;
-      BtnDisplay = BTN_F_TL;
-      BtnFlip = BTN_F_TR;
+      BtnDisplay =  BTN_F_TL;
+      BtnFlip =     BTN_F_TR;
       BtnBrighter = BTN_F_BR;
-      BtnDimmer = BTN_F_BL;
+      BtnDimmer =   BTN_F_BL;
   	}
   	if ( DM != DMOff )
   	{

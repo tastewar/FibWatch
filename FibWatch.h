@@ -76,3 +76,38 @@
 #define DISPLAY_TIME 12500
 #define DEBOUNCE_TIME 50
 
+typedef enum _DisplayMode
+{
+  DMOff,
+  DMFibTime,
+  DMTextTime,
+  DMMenu,
+} DisplayMode;
+
+typedef struct _ScreenColor
+{
+  uint8_t Red;
+  uint8_t Green;
+  uint8_t Blue;
+} ScreenColor;
+
+typedef struct _Palette
+{
+  ScreenColor Colors[4]; // off, hour, minute, both
+} Palette;
+
+typedef enum _PalNums
+ {
+  PAL_RGB,
+  PAL_MONDRIAN,
+  PAL_BASBRUN,
+  PAL_80S,
+  PAL_PASTEL,
+  PAL_MODERN,
+  PAL_COLD,
+  PAL_WARM,
+  PAL_EARTH,
+  PAL_DARK,
+ } PalNum;
+
+

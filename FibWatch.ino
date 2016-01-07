@@ -7,55 +7,21 @@
 
 //#define DEBUG
 
-typedef enum _DisplayMode
-{
-  DMOff,
-  DMFibTime,
-  DMTextTime,
-  DMMenu,
-} DisplayMode;
-
-typedef struct _ScreenColor
-{
-  uint8_t Red;
-  uint8_t Green;
-  uint8_t Blue;
-} ScreenColor;
-
-typedef struct _Palette
-{
-  ScreenColor Colors[4]; // off, hour, minute, both
-} Palette;
-
 Palette clockcolors[TOTAL_PALETTES]=
 { // These are copied directly from the Fibonacci Clock code
-  // -- off  --  -- hours --   --minutes--   --  both  --
+  // -- off  --   -- hours --   --minutes--   --  both  --
   // R   G   B     R   G   B     R   G   B     R   G   B
-  {255,255,255},{255, 10, 10},{ 10,255, 10},{ 10, 10,255}, //RGB
-  {255,255,255},{255, 10, 10},{248,222,  0},{ 10, 10,255}, //Mondrian
-  {255,255,255},{ 80, 40,  0},{ 20,200, 20},{255,100, 10}, //Basbrun
-  {255,255,255},{245,100,201},{114,247, 54},{113,235,219}, //80's
-  {255,255,255},{255,123,123},{143,255,112},{120,120,255}, //Pastel
-  {255,255,255},{212, 49, 45},{145,210, 49},{141, 95,224}, //Modern
-  {255,255,255},{209, 62,200},{ 69,232,224},{ 80, 70,202}, //Cold
-  {255,255,255},{237, 20, 20},{246,243, 54},{255,126, 21}, //Warm
-  {255,255,255},{ 70, 35,  0},{ 70,122, 10},{200,182,  0}, //Earth
-  {255,255,255},{211, 34, 34},{ 80,151, 78},{ 16, 24,149}, //Dark
+  {{{255,255,255},{255, 10, 10},{ 10,255, 10},{ 10, 10,255}}}, //RGB
+  {{{255,255,255},{255, 10, 10},{248,222,  0},{ 10, 10,255}}}, //Mondrian
+  {{{255,255,255},{ 80, 40,  0},{ 20,200, 20},{255,100, 10}}}, //Basbrun
+  {{{255,255,255},{245,100,201},{114,247, 54},{113,235,219}}}, //80's
+  {{{255,255,255},{255,123,123},{143,255,112},{120,120,255}}}, //Pastel
+  {{{255,255,255},{212, 49, 45},{145,210, 49},{141, 95,224}}}, //Modern
+  {{{255,255,255},{209, 62,200},{ 69,232,224},{ 80, 70,202}}}, //Cold
+  {{{255,255,255},{237, 20, 20},{246,243, 54},{255,126, 21}}}, //Warm
+  {{{255,255,255},{ 70, 35,  0},{ 70,122, 10},{200,182,  0}}}, //Earth
+  {{{255,255,255},{211, 34, 34},{ 80,151, 78},{ 16, 24,149}}}, //Dark
  };
-
-typedef enum _PalNums
- {
-  PAL_RGB,
-  PAL_MONDRIAN,
-  PAL_BASBRUN,
-  PAL_80S,
-  PAL_PASTEL,
-  PAL_MODERN,
-  PAL_COLD,
-  PAL_WARM,
-  PAL_EARTH,
-  PAL_DARK,
- } PalNum;
 
 // Globals
 
@@ -178,10 +144,13 @@ void DisplayTime (time_t loc)
   {
   	uint8_t colnum,XXX,YYY;
     ScreenColor col;
+    Palette p;
+    
   	XXX=(hrsr&bits[b])>>shifts[b];
   	YYY=((minsr&bits[b])>>shifts[b])<<1;
   	colnum=XXX+YYY;
-    col=clockcolors[Pal][colnum];
+    p=clockcolors[Pal];
+    col=p.Colors[colnum];
   	FillFibBox(b,&col);
   }
 }
@@ -273,6 +242,7 @@ void setup()
 #endif
   display.clearWindow(0,0,WIDTH,HEIGHT);
   DM=DMOff;
+  Pal=PAL_RGB;
 }
 
 void loop()

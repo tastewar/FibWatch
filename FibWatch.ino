@@ -6,12 +6,6 @@
 #include <DSRTCLib.h>
 #include "FibWatch.h"
 
-#ifdef USE_PMEM
-#define PMEM PMEM
-#else
-#define PMEM
-#endif
-
 // ******************************   D  A  T  A   *****************************
 
 // Globals
@@ -26,7 +20,7 @@ TinyScreen    display = TinyScreen(0);
 DS1339        RTC = DS1339();
 
 // Tables
-const Palette clockcolors[TOTAL_PALETTES] PMEM =
+const Palette clockcolors[TOTAL_PALETTES] =
 { // These are copied from the Fibonacci Clock code    120 bytes
   // -- off  --   -- hours --   --minutes--   --  both  --
   // R   G   B     R   G   B     R   G   B     R   G   B
@@ -43,30 +37,30 @@ const Palette clockcolors[TOTAL_PALETTES] PMEM =
  };
 
 // following use 25 bytes
-const uint8_t bits[]          PMEM ={BOX1ABIT,BOX1BBIT,BOX2BIT,BOX3BIT,BOX5BIT};
-const uint8_t shifts[]        PMEM ={0,1,2,3,4};
-const uint8_t lefts[NUMBOXES] PMEM ={BOX1ALEFT,BOX1BLEFT,BOX2LEFT,BOX3LEFT,BOX5LEFT};
-const uint8_t tops[NUMBOXES]  PMEM ={BOX1ATOP,BOX1BTOP,BOX2TOP,BOX3TOP,BOX5TOP};
-const uint8_t sizes[NUMBOXES] PMEM ={BOX1SIZE,BOX1SIZE,BOX2SIZE,BOX3SIZE,BOX5SIZE};
+const uint8_t bits[]          = {BOX1ABIT,BOX1BBIT,BOX2BIT,BOX3BIT,BOX5BIT};
+const uint8_t shifts[]        = {0,1,2,3,4};
+const uint8_t lefts[NUMBOXES] = {BOX1ALEFT,BOX1BLEFT,BOX2LEFT,BOX3LEFT,BOX5LEFT};
+const uint8_t  tops[NUMBOXES] = {BOX1ATOP,BOX1BTOP,BOX2TOP,BOX3TOP,BOX5TOP};
+const uint8_t sizes[NUMBOXES] = {BOX1SIZE,BOX1SIZE,BOX2SIZE,BOX3SIZE,BOX5SIZE};
 
 // ways to display numbers -- 32 bytes
 // arrays of bitmaps where the bits represent the state of boxes 5,3,2,1B,1A
-const uint8_t   zeros[] PMEM ={0b00000};
-const uint8_t    ones[] PMEM ={0b00010,0b00001};
-const uint8_t    twos[] PMEM ={0b00100,0b00011};
-const uint8_t  threes[] PMEM ={0b01000,0b00110,0b00101};
-const uint8_t   fours[] PMEM ={0b01010,0b01001,0b00111};
-const uint8_t   fives[] PMEM ={0b10000,0b01100,0b01011};
-const uint8_t   sixes[] PMEM ={0b10010,0b10001,0b01110,0b01101};
-const uint8_t  sevens[] PMEM ={0b10100,0b10011,0b01111};
-const uint8_t  eights[] PMEM ={0b11000,0b10110,0b10101};
-const uint8_t   nines[] PMEM ={0b11010,0b11001,0b10111};
-const uint8_t    tens[] PMEM ={0b11100,0b11011};
-const uint8_t elevens[] PMEM ={0b11110,0b11101};
-const uint8_t twelves[] PMEM ={0b11111};
+const uint8_t   zeros[] = {0b00000};
+const uint8_t    ones[] = {0b00010,0b00001};
+const uint8_t    twos[] = {0b00100,0b00011};
+const uint8_t  threes[] = {0b01000,0b00110,0b00101};
+const uint8_t   fours[] = {0b01010,0b01001,0b00111};
+const uint8_t   fives[] = {0b10000,0b01100,0b01011};
+const uint8_t   sixes[] = {0b10010,0b10001,0b01110,0b01101};
+const uint8_t  sevens[] = {0b10100,0b10011,0b01111};
+const uint8_t  eights[] = {0b11000,0b10110,0b10101};
+const uint8_t   nines[] = {0b11010,0b11001,0b10111};
+const uint8_t    tens[] = {0b11100,0b11011};
+const uint8_t elevens[] = {0b11110,0b11101};
+const uint8_t twelves[] = {0b11111};
 
-const uint8_t * const waystodraw[] PMEM ={zeros,ones,twos,threes,fours,fives,sixes,sevens,eights,nines,tens,elevens,twelves}; // 13 ptrs, 26 bytes
-const uint8_t numwaystodraw[] PMEM ={
+const uint8_t * const waystodraw[] = {zeros,ones,twos,threes,fours,fives,sixes,sevens,eights,nines,tens,elevens,twelves}; // 13 ptrs, 26 bytes
+const uint8_t numwaystodraw[] = {
 	sizeof(zeros)  /sizeof(uint8_t),
 	sizeof(ones)   /sizeof(uint8_t),
 	sizeof(twos)   /sizeof(uint8_t),
@@ -252,6 +246,7 @@ void setup()
   RTC.readTime();
   setTime(RTC.date_to_epoch_seconds());
   setSyncProvider(ThatSyncingFeeling);
+  randomSeed(RTC.date_to_epoch_seconds());
 }
 
 void loop()

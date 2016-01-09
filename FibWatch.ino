@@ -3,6 +3,7 @@
 #include <Wire.h>
 #include <Time.h>
 #include <Timezone.h>
+#include <DSRTCLib.h>
 #include "FibWatch.h"
 
 #ifdef USE_PMEM
@@ -22,6 +23,7 @@ uint8_t       Bright;
 DisplayMode   DM;
 PalNum        Pal;
 TinyScreen    display = TinyScreen(0);
+DS1339        RTC = DS1339();
 
 // Tables
 const Palette clockcolors[TOTAL_PALETTES] PMEM =
@@ -43,9 +45,9 @@ const Palette clockcolors[TOTAL_PALETTES] PMEM =
 // following use 25 bytes
 const uint8_t bits[]          PMEM ={BOX1ABIT,BOX1BBIT,BOX2BIT,BOX3BIT,BOX5BIT};
 const uint8_t shifts[]        PMEM ={0,1,2,3,4};
-const uint8_t lefts[numboxes] PMEM ={BOX1ALEFT,BOX1BLEFT,BOX2LEFT,BOX3LEFT,BOX5LEFT};
-const uint8_t tops[numboxes]  PMEM ={BOX1ATOP,BOX1BTOP,BOX2TOP,BOX3TOP,BOX5TOP};
-const uint8_t sizes[numboxes] PMEM ={BOX1SIZE,BOX1SIZE,BOX2SIZE,BOX3SIZE,BOX5SIZE};
+const uint8_t lefts[NUMBOXES] PMEM ={BOX1ALEFT,BOX1BLEFT,BOX2LEFT,BOX3LEFT,BOX5LEFT};
+const uint8_t tops[NUMBOXES]  PMEM ={BOX1ATOP,BOX1BTOP,BOX2TOP,BOX3TOP,BOX5TOP};
+const uint8_t sizes[NUMBOXES] PMEM ={BOX1SIZE,BOX1SIZE,BOX2SIZE,BOX3SIZE,BOX5SIZE};
 
 // ways to display numbers -- 32 bytes
 // arrays of bitmaps where the bits represent the state of boxes 5,3,2,1B,1A
@@ -87,7 +89,7 @@ Timezone usET(usEDT, usEST);
 
 // ******************************   C  O  D  E   *****************************
 
-uint8_t ChooseFibReb ( uint8_t number )
+uint8_t ChooseFibRep ( uint8_t number )
 {
   uint8_t        possibilities, whichway;
   const uint8_t *ways;
@@ -108,7 +110,7 @@ uint8_t ChooseFibReb ( uint8_t number )
 
 void FillFibBox(uint8_t box, ScreenColor *color)
 {
-  if (box<numboxes)
+  if (box<NUMBOXES)
   {
 #ifdef BORDERS
    	display.drawRect(lefts[box]+1,tops[box]+1,sizes[box]-2,sizes[box]-2,true,color->Red,color->Green,color->Blue);
@@ -118,32 +120,7 @@ void FillFibBox(uint8_t box, ScreenColor *color)
   }
 }
 
-//Function to return the compile date and time as a time_t value
-time_t compileTime(void)
-{
-#define FUDGE 25        //fudge factor to allow for compile time (seconds, YMMV)
-
-    char        *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
-    char         chMon[3], *m;
-    int          d, y;
-    tmElements_t tm;
-    time_t       t;
-
-    strncpy(chMon, compDate, 3);
-    chMon[3] = '\0';
-    m = strstr(months, chMon);
-    tm.Month = ((m - months) / 3 + 1);
-
-    tm.Day = atoi(compDate + 4);
-    tm.Year = atoi(compDate + 7) - 1970;
-    tm.Hour = atoi(compTime);
-    tm.Minute = atoi(compTime + 3);
-    tm.Second = atoi(compTime + 6);
-    t = makeTime(tm);
-    return t + FUDGE /*- (5*3600)*/;        //add fudge factor to allow for compile time and TZO
-}
-
-void DisplayTime (time_t loc)
+void DisplayFibTime (time_t loc)
 {
   uint8_t h,hrsr,minsr,b;
 
@@ -152,14 +129,14 @@ void DisplayTime (time_t loc)
   {
     h=12;
   }
-  hrsr=ChooseFibReb(h);
-  minsr=ChooseFibReb(minute(loc)/5);
+  hrsr=ChooseFibRep(h);
+  minsr=ChooseFibRep(minute(loc)/5);
 
-  for (b=0;b<numboxes;b++)
+  for (b=0;b<NUMBOXES;b++)
   {
-  	uint8_t colnum,XXX,YYY;
+  	uint8_t     colnum,XXX,YYY;
     ScreenColor col;
-    Palette p;
+    Palette     p;
     
   	XXX=(hrsr&bits[b])>>shifts[b];
   	YYY=((minsr&bits[b])>>shifts[b])<<1;
@@ -223,7 +200,7 @@ uint8_t CheckButtons()
   }
   else if ( !Buttons && ButtonInProgress && millis()-RememberedTime > DEBOUNCE_TIME )
   {
-  	unsigned long orb;
+  	uint8_t orb;
     
   	ButtonInProgress = false;
   	orb = RememberedButtons;
@@ -239,12 +216,18 @@ uint8_t CheckButtons()
   return 0;
 }
 
+time_t ThatSyncingFeeling()
+{
+  RTC.readTime();
+  return RTC.date_to_epoch_seconds();
+}
+
 void setup()
 {
 #ifdef DEBUG
   Serial.begin(115200);
 #endif
-  setTime(usET.toUTC(compileTime()));
+  RTC.start(); // ensure RTC oscillator is running, if not already
   Wire.begin();
   display.begin();
   display.setFont(liberationSans_10ptFontInfo);
@@ -266,6 +249,9 @@ void setup()
   Pal=PAL_RGB;
   Bright=7;
   display.setBrightness(Bright);
+  RTC.readTime();
+  setTime(RTC.date_to_epoch_seconds());
+  setSyncProvider(ThatSyncingFeeling);
 }
 
 void loop()
@@ -295,7 +281,7 @@ void loop()
     utc = now();
     loc = usET.toLocal(utc);
     display.clearWindow(0,0,WIDTH,HEIGHT);
-    DisplayTime(loc);
+    DisplayFibTime(loc);
   	if ( DM == DMOff )
   	{
       display.on();
@@ -326,7 +312,7 @@ void loop()
   	if ( DM != DMOff )
   	{
       display.clearWindow(0,0,WIDTH,HEIGHT);
-  	  if ( DM == DMFibTime ) DisplayTime(loc);
+  	  if ( DM == DMFibTime ) DisplayFibTime(loc);
   	  else if ( DM == DMTextTime ) DisplayTextDateTime(loc,tcr);
   	  display.on();
   	  TimeDisplayOn = millis();

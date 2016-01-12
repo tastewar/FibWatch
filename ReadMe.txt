@@ -23,7 +23,9 @@ Button 1 when pressed will display the time until 12.5 seconds after released
 Button 2 enters settings (menu) mode
 
 When in menu mode, Button 1 exits, Button 3 retreats current item,
-Button 4 advances current item, and Button 2 accepts input.
+Button 4 advances current item, and Button 2 accepts input. Note that the 
+buttons are orientation dependent, i.e. if you flip the screen, the buttons
+adjust as well.
 
 When first entering time setting mode, you can choose from a list of time zones.
 Once the TZ is accepted, the change goes into effect immediately for the date
@@ -74,10 +76,7 @@ To-Do List:
 ==========
 ==========
 
-1. RTC support
-2. Sleep support
-3. Menu!
-4. Hardware Parameter Storage & Retrieval
-5. Colorsets
-6. Move big tables to PROGMEM
-7. Don't forget to seed random when we can use clock
+1. Sleep support
+2. Menu!
+3. Hardware Parameter Storage & Retrieval
+4. Move big tables to PROGMEM

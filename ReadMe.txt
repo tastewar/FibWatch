@@ -39,38 +39,37 @@ display is turned off 12.5 seconds later.
 
 Settings Menus are as follows:
 
-Settings:
+Settings: -- menu
 ========
-Timezone
-Minutes
-Hours
-Date
-Month
-Year
-Hardware
+Timezone -- text setting
+	Hawaii
+	Alaska
+	Pacific
+	Mountain
+	Arizona
+	Central
+	Eastern
+	Atlantic
+	Nova Scotia
+	UK
+	CentralEU
+	EasternEU
+Minutes -- numeric 0-59
+Hours -- numeric 0-23
+Date -- numeric 1-{28,29,30,31}
+Month -- numeric 1-12
+Year -- numeric 2000-2099
+Hardware -- menu
 
-Timezone:
-========
-Hawaii
-Alaska
-Pacific
-Mountain
-Arizona
-Central
-Eastern
-Atlantic
-Nova Scotia
-UK
-CentralEU
-EasternEU
-
-Hardware:
+Hardware: -- menu
 =========
-Orientation
-Brightness
-DisplayTimeout
-Battery
-Color Scheme
+Orientation -- text
+	Default
+	Inverted
+Brightness -- numeric 0-15
+DisplayTimeout -- numeric
+Color Scheme -- text
+	
 
 To-Do List:
 ==========
@@ -80,3 +79,4 @@ To-Do List:
 2. Menu!
 3. Hardware Parameter Storage & Retrieval
 4. Move big tables to PROGMEM
+5. Battery state display?

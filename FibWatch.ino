@@ -4,6 +4,7 @@
 #include <Time.h>
 #include <Timezone.h>
 #include <DSRTCLib.h>
+#include <Flash.h>
 #include "FibWatch.h"
 
 // ******************************   D  A  T  A   *****************************
@@ -37,7 +38,7 @@ const Palette clockcolors[TOTAL_PALETTES] =
  };
 
 // following use 25 bytes
-const uint8_t bits[]          = {BOX1ABIT,BOX1BBIT,BOX2BIT,BOX3BIT,BOX5BIT};
+const uint8_t   bits[]        = {BOX1ABIT,BOX1BBIT,BOX2BIT,BOX3BIT,BOX5BIT};
 const uint8_t shifts[]        = {0,1,2,3,4};
 const uint8_t lefts[NUMBOXES] = {BOX1ALEFT,BOX1BLEFT,BOX2LEFT,BOX3LEFT,BOX5LEFT};
 const uint8_t  tops[NUMBOXES] = {BOX1ATOP,BOX1BTOP,BOX2TOP,BOX3TOP,BOX5TOP};

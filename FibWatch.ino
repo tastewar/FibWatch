@@ -225,7 +225,7 @@ void setup()
   RTC.start(); // ensure RTC oscillator is running, if not already
   Wire.begin();
   display.begin();
-  display.setFont(liberationSans_10ptFontInfo);
+  display.setFont(liberationSans_8ptFontInfo);
 #ifdef REVERSE
   display.setFlip(1);
   Flipped = true;
@@ -241,7 +241,7 @@ void setup()
 #endif
   display.clearWindow(0,0,WIDTH,HEIGHT);
   DM=DMOff;
-  Pal=PAL_RGB;
+  Pal=PAL_MODERN;
   Bright=7;
   display.setBrightness(Bright);
   RTC.readTime();

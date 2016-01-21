@@ -69,6 +69,7 @@ Orientation -- text
 Brightness -- numeric 0-15
 DisplayTimeout -- numeric
 Color Scheme -- text
+Show AM/PM -- On/Off?? -- as 2 pix square in margin?
 	
 
 To-Do List:
@@ -80,3 +81,5 @@ To-Do List:
 3. Hardware Parameter Storage & Retrieval
 4. Move big tables to PROGMEM
 5. Battery state display?
+6. Show Colors after selection
+7. Better date/time display

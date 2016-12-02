@@ -1,9 +1,10 @@
+
+#include <RTCZero.h>
 #include <TinyScreen.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <Time.h>
+#include <TimeLib.h>
 #include <Timezone.h>
-#include <DSRTCLib.h>
 #include <Flash.h>
 #include "FibWatch.h"
 
@@ -17,8 +18,8 @@ uint8_t       BtnDisplay, BtnFlip, BtnBrighter, BtnDimmer;
 uint8_t       Bright;
 DisplayMode   DM;
 PalNum        Pal;
-TinyScreen    display = TinyScreen(0);
-DS1339        RTC = DS1339();
+TinyScreen    display = TinyScreen(TinyScreenPlus);
+RTCZero       myRTC;
 
 // Tables
 const Palette clockcolors[TOTAL_PALETTES] =
@@ -81,6 +82,10 @@ const uint8_t numwaystodraw[] = {
 TimeChangeRule usEDT = {"EDT", Second, Sun, Mar, 2, -240};  //Eastern Daylight Time = UTC - 4 hours
 TimeChangeRule usEST = {"EST", First, Sun, Nov, 2, -300};   //Eastern Standard Time = UTC - 5 hours
 Timezone usET(usEDT, usEST);
+
+TimeChangeRule usMDT = {"MDT", Second, Sun, Mar, 2, -360};  //Mountain Daylight Time = UTC - 6 hours
+TimeChangeRule usMST = {"MST", First, Sun, Nov, 2, -420};   //Mountain Standard Time = UTC - 7 hours
+Timezone usMT(usMDT, usMST);
 
 // ******************************   C  O  D  E   *****************************
 
@@ -165,7 +170,7 @@ void DisplayTextDateTime(time_t t, TimeChangeRule *tcr)
 //Input value assumed to be between 0 and 99.
 void sPrintI00(int val)
 {
-    if (val < 10) Serial.print('0');
+    if (val < 10) display.print('0');
     display.print(val, DEC);
     return;
 }
@@ -213,8 +218,7 @@ uint8_t CheckButtons()
 
 time_t ThatSyncingFeeling()
 {
-  RTC.readTime();
-  return RTC.date_to_epoch_seconds();
+  return myRTC.getEpoch();
 }
 
 void setup()
@@ -222,7 +226,7 @@ void setup()
 #ifdef DEBUG
   Serial.begin(115200);
 #endif
-  RTC.start(); // ensure RTC oscillator is running, if not already
+  myRTC.begin(); // ensure RTC oscillator is running, if not already
   Wire.begin();
   display.begin();
   display.setFont(liberationSans_8ptFontInfo);
@@ -241,13 +245,12 @@ void setup()
 #endif
   display.clearWindow(0,0,WIDTH,HEIGHT);
   DM=DMOff;
-  Pal=PAL_MODERN;
+  Pal=PAL_RGB;
   Bright=7;
   display.setBrightness(Bright);
-  RTC.readTime();
-  setTime(RTC.date_to_epoch_seconds());
+  setTime(myRTC.getEpoch());
   setSyncProvider(ThatSyncingFeeling);
-  randomSeed(RTC.date_to_epoch_seconds());
+  randomSeed(myRTC.getEpoch());
 }
 
 void loop()
@@ -263,7 +266,7 @@ void loop()
     display.clearWindow(0,0,WIDTH,HEIGHT);
   	TimeDisplayOn = millis();
     utc = now();
-    loc = usET.toLocal(utc,&tcr);
+    loc = usMT.toLocal(utc,&tcr);
   	DisplayTextDateTime(loc,tcr);
   	if ( DM == DMOff )
   	{
@@ -275,7 +278,7 @@ void loop()
   {
   	TimeDisplayOn = millis();
     utc = now();
-    loc = usET.toLocal(utc);
+    loc = usMT.toLocal(utc);
     display.clearWindow(0,0,WIDTH,HEIGHT);
     DisplayFibTime(loc);
   	if ( DM == DMOff )

@@ -81,5 +81,10 @@ To-Do List:
 3. Hardware Parameter Storage & Retrieval
 4. Move big tables to PROGMEM
 5. Battery state display?
-6. Show Colors after selection
-7. Better date/time display
+6. Show Colors after selection!
+7. Better digital date/time display
+8. Charging of clock battery?
+9. Optional Display of Minutes along edge
+10. Optional Display of AM/PM
+11. Re-display time if minutes change while display is on
+12. Option to have 12 as either 0 or 12
